@@ -1,0 +1,218 @@
+---
+title: 'Functionals'
+date: '2026-02-03'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+categories:
+- Week02
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(ggplot2)
+lambda <- 2.25
+```
+
+# Functionals 
+
+Functionals are functions that take a function as input and return a 
+(vector of) number(s) as output: 
+
+in base: e.g. `uniroot`, `integrate`, ...
+
+in tidyverse: e.g. `summarize`, `mutate`, ...
+
+::: {.fragment}
+
+another example:  `purrr::map`
+applies a function on every element in a list
+:::
+
+::: {.fragment}
+<img src="https://adv-r.hadley.nz/diagrams/functionals/map.png" height="300px">
+
+:::
+
+# Your Turn  {background-color="#006666"}
+
+1. Write a function(al) `apply_to(d,f)` in R that applies the function `f` to every variable of data set `d`. 
+
+Run the statement `mtcars |> apply_to(class)`
+
+2. Create a statement that returns the number of missing values in each of the variables of `txhousing` (in the `ggplot2` package)
+
+3. How do your results differ from corresponding calls to `sapply`?
+
+# `Map` and variants
+
+- `map` applies a function to every item in a list
+
+- `map_XXX` additionally formats output as `XXX`: can be `chr` (character), `dbl` (numeric), `lgl` (logical), ...
+
+- `walk` does not have any output, i.e. operates through side effects (e.g. print message, create files, ...)
+
+- `map2` and `pmap` take two/arbitrarily many lists as input
+
+# Why maps?
+
+- `map` functions serve as iterators, i.e. replace (most) loops
+
+- `map` works within the tidyverse specs: apply either globally to each variable or within `mutate` to each element in a (set of) variable(s)
+
+- `map` doesn't need to preserve the order in the variable, i.e. signal to processor that code could be run in parallel or distributed (e.g. good for large data)
+
+# Reduce functionals
+
+- `reduce` takes a function `f` and a vector  `x` and applies the function repeatedly to its output `f(f(f( ... f(x))))`
+
+- `reduce` is conceptually a recursive approach
+
+```{r}
+x <- c(4, 3, 10)
+purrr::reduce(x, `+`) # cumulative sum
+```
+```{r}
+# x <- 1:70
+x <- seq(1,70, by=1)
+purrr::reduce(x, `*`) # factorial
+```
+# Function factories
+
+- a function that produces another function 
+
+- often a shift in perspective (re-express as function of another parameter, e.g. likelihood vs density)
+
+- transformations (box-cox, scales in `ggplot2`)
+
+# Example: Log likelihood of Poisson 
+
+```{r}
+ll_poisson <- function(x) {
+  # for numeric vector x
+  n <- length(x)
+  
+  function(lambda) {
+     log(lambda) * sum(x) - n * lambda - sum(lfactorial(x))
+  }
+}
+
+ll_poisson(c(3,1,4))
+```
+
+# Example: Log likelihood of Poisson 
+
+Better (because any terms in `x` are only evaluated once)
+
+```{r}
+ll_poisson <- function(x) {
+  # for numeric vector x
+  n <- length(x)
+  S <- sum(x)
+  X <- sum(lfactorial(x))
+  
+  function(lambda) {
+     log(lambda) * S - n * lambda - X
+  }
+}
+```
+
+```{r}
+x <- c(2, 1, 1, 4, 3, 0, 0, 0, 1, 0)
+ll_x <- ll_poisson(x)
+```
+
+# Using functions ...
+
+```{r}
+optimise(ll_x, interval = c(0,5), maximum = TRUE)
+```
+```{r}
+ggplot() + geom_function(fun = ll_x, xlim = c(0, 5))
+```
+# Sampling error in log-likelihood functions
+
+```{r}
+ggplot() + 
+  geom_function(fun = ll_poisson(rpois(10, lambda)), xlim = c(0, 5)) + 
+  geom_function(fun = ll_poisson(rpois(10, lambda)), xlim = c(0, 5)) + 
+  geom_function(fun = ll_poisson(rpois(10, lambda)), xlim = c(0, 5)) +
+  geom_function(fun = ll_poisson(rpois(20, lambda)), xlim = c(0, 5)) + 
+  geom_function(fun = ll_poisson(rpois(20, lambda)), xlim = c(0, 5)) + 
+  geom_function(fun = ll_poisson(rpois(20, lambda)), xlim = c(0, 5))   
+```
+
+
+# Your Turn  {background-color="#006666"}
+
+Re-write the previous expression with an approach that avoids the duplication of lines
+
+
+
+# Solution
+
+No peeking!
+
+# Solution - mapping
+
+```{r}
+layers <- list(10,10,10, 20, 20, 20) |> 
+  purrr::map(.f = function(n) rpois(n, lambda = lambda)) |>
+  purrr::map(.f = ll_poisson) |>
+  purrr::map(.f = function(x) 
+    geom_function(aes(), fun=x, xlim=c(0,5)))
+             
+
+ggplot() + 
+  layers
+```
+# Solution - Function Factory
+
+
+```{r}
+geom_function_sample <- function(fun, sample, args) {
+  
+  function(n, samples, ...) {
+    args = append(args, c("n"=n))
+    1:samples |> purrr::map(
+      .f = function(i) {
+        geom_function(fun = fun(do.call(sample, args=args)), ...)
+    })
+  }
+}
+
+add_function_layer <- geom_function_sample(
+  fun = ll_poisson, sample=rpois, 
+  args = list(lambda=lambda))
+```
+
+# 
+
+```{r}
+ggplot() + xlim(c(0,10)) +
+  add_function_layer(10, 3, aes(colour="n = 10")) +
+  add_function_layer(20, 3, aes(colour="n = 20")) +
+  add_function_layer(30, 3, aes(colour="n = 30"))
+```
+
+#
+
+```{r}
+add_rnorm_layer <- geom_function_sample(
+  fun = ll_poisson, sample=rnorm, 
+  args = list(mean=lambda, sd=lambda))
+
+ggplot() + xlim(c(0,10)) +
+  add_rnorm_layer(30, 10, aes(colour="Normal sample")) +
+  add_function_layer(30, 10, aes(colour="Poisson")) 
+
+```

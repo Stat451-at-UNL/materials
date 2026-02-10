@@ -1,0 +1,69 @@
+---
+title: "Setting up a Package"
+date: '2026-02-05'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: false
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+
+# Outline
+
+- file structures of packages
+
+- documentation
+
+- development cycle
+
+<br>
+<br>
+<br>
+
+Resource: [R packages](http://r-pkgs.had.co.nz/) by Hadley Wickham
+
+# RStudio and R packages
+
+RStudio supports creating new packages. Follow the dialogs through `New Project ...`
+
+<img src="images/package-01.png" height="450"/>
+
+# RStudio and R packages (cont'd)
+
+RStudio supports creating new packages. Follow the dialogs through `New Project ...`
+
+<img src="images/package-02.png" height="450"/>
+
+# RStudio and R packages (cont'd)
+
+RStudio supports creating new packages. Follow the dialogs through `New Project ...`
+
+<img src="images/package-03.png" height="450"/>
+
+#
+
+<img src="images/package-04.png" class="cover"/>
+
+# Your Turn {background-color="#006666"}
+
+-   Create a new R package using the RStudio dialog to set it up in a new project.
+
+-   Build the package (CMD + shift + B) and run the function `hello()`
+
+-   Have a look at the help for `hello` with `?hello`
+- Have a look at the file `hello.Rd` in `man/`
+
+# Your Turn (Advanced) {background-color="#006666"}
+
+-   Does the package pass R CMD check? (Cmd + Shift + E)
+

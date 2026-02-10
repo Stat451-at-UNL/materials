@@ -1,0 +1,13 @@
+---
+title: 'Homework 3: Function accuracy'
+type: Homework
+date: '2026-02-05'
+categories:
+- HW
+- Week04
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-3-function-accuracy/Readme.Rmd >}}
+

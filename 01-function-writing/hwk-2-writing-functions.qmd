@@ -1,0 +1,13 @@
+---
+title: 'Homework 2: Function writing'
+type: Homework
+date: '2026-01-29'
+categories:
+- HW
+- Week03
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-2-writing-functions/Readme.Rmd >}}
+

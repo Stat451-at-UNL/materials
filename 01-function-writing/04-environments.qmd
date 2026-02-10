@@ -1,0 +1,187 @@
+---
+title: 'Environments'
+date: '2026-01-29'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+cache: false
+categories:
+- Week03
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+# What are Environments?
+
+- in R, environments are objects :)
+- similar to lists of named objects
+- BUT: environments are only **references** -- i.e. they are not copied when passed into a function (in C we would call them pointers)
+
+```{r}
+# Usually *values* of objects are copied
+x <- 2
+y <- x # y gets value of x
+x <- 4
+
+y # value of y did not change with x
+```
+
+# Every environment exists only once
+
+```{r}
+library(rlang)
+e1 <- env(x = 2, y = 4, z = 6)
+ls(e1)
+```
+
+Now create another reference to e1:
+```{r}
+e2 <- e1
+e2$d <- pi 
+ls(e1) # e1 has changed with e2
+```
+The 'two' environments are just two different names for the same thing
+```{r}
+identical(ls(e1), ls(e2))
+```
+
+# Why do we need Environments?
+
+- working directory is `.GlobalEnv` or `global_env`
+
+```{r}
+ls(.GlobalEnv)
+```
+
+- the current working directory is `current_env()`
+
+```{r}
+ls(current_env())
+```
+- when we are working in the console, these environments are the same
+
+# Environments
+
+- Every environment (except for the empty environment) has a parent environment (the environment from which it was created)
+
+```{r}
+env_parent(e1)
+```
+
+
+
+# Functions and Environments
+
+- environments implement the lexical scope of a function:
+
+    a new environment is created when a function is called, with the function's parameters and any objects defined in the function 
+
+```{r}
+x <- 4
+
+f <- function(x) {
+  x <- x + 4
+  x
+}
+
+f(1)
+```
+
+- What is the value of `f(1)`, what is the value of `x` before `f(1)` is called, what is it after `f(1)`?
+
+
+
+# Your Turn  {background-color="#006666"}
+
+Call the library `rlang`. What is the parent environment of the global environment?
+
+In the `fac` function, add print of the current and the parent environment. 
+Then run `fac(5)`.
+
+`env_parents` returns a list of all parent environments. 
+
+
+# Super assignment `<<-`
+
+`<<-` is the assignment of a value to an object in the (first) parent environment (in which the value is found). 
+
+In a programming setting we might want to have more control, and specify 
+the exact parent environment. 
+Otherwise there might be unexpected side effects when somebody else uses our function.
+
+
+# Implementing a counter
+
+```{r}
+counter <- 0
+
+square <- function (x) {
+  counter <<- counter + 1
+  x^2
+}
+
+counter
+
+
+square(3); counter
+
+
+square(2); counter
+
+
+square(5); counter
+```
+
+# Counter - why not like this
+
+The implementation is easily breakable: everybody can change `counter` in the global environment
+
+If we want to count something else (like `sqrt` calls), we need separate counters
+
+# Counter - approach 2
+
+```{r}
+add_counter <- function(f, ...) {
+  counter <- 0
+  
+  function (...) {
+    counter <<- counter + 1
+    do.call(f, list(...))
+  }
+}
+
+square_with <- add_counter(square)
+```
+
+now use it ... 
+
+# Counter - functional environments
+
+```{r}
+square_with(5) # first use
+square_with(3) # second use
+square_with(1) # counter should now be 3
+```
+
+```{r}
+ls(environment(square_with)) # counter is there
+```
+
+With `get` we get the value of an object
+
+```{r}
+get("counter", envir = environment(square_with))
+```
+
+

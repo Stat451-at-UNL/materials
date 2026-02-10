@@ -1,0 +1,105 @@
+---
+title: 'More functions'
+date: '2026-01-20'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+# Recursive functions
+
+the prototypical function - similar to proof by induction:
+  
+- define values for endings
+
+- get value for f(x) from value of f(x-1)
+
+# Factorials 
+
+```{r}
+fac <- function(x) {
+  stopifnot(is.numeric(x), x >= 0, length(x) == 1)
+  if (x == 0) return(1)
+  if (x == 1) return(1)
+  return(x*fac(x-1))
+}
+
+fac(5)
+fac(60)
+fac(2.5)
+```
+
+# Advantage of recursions over loops
+
+Calling functions generally leads to cleaner code (function naming is crucial!)
+
+Focus on "what" is done rather than "how"
+
+... at the cost of memory (function stack) 
+
+
+
+# Your Turn  {background-color="#006666"}
+
+Use the factorial function to implement the binomial coefficient as a function `binom(n, k)`
+
+$\binom{n}{k} = \frac{n!}{k! (n-k)!}$
+
+What is the result for `binom(175,2)`?
+
+Rewrite the function to be able to deal with `binom(175,2)` and `binom(175,173)`
+
+# Floating Point Numbers (FPN)
+
+For base $\beta$  and precision $p$ (both $\beta$ and $p$ are positive integers),  FPNs are represented as 
+
+$$
+d.dddddd \times \beta^e,
+$$
+where $d.dddddd$ is called the *significand* and has $p$ digits.
+
+If the first $d$ is non-zero, the representation is called *normalized*. 
+Normalized FP representations are unique.
+
+
+# Floating point numbers have limits
+
+```{r}
+.Machine$double.xmax
+```
+
+Values outside of these limits are encoded as `Inf` (and `-Inf` for negative values) in R.
+
+```{r}
+fac(170)
+fac(171)
+-fac(171)
+```
+
+# What happened here?
+
+```{r}
+fac(0.05 + 0.1 - 0.15)
+```
+
+
+::: {.fragment}
+```{r}
+fac
+```
+:::

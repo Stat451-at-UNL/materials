@@ -1,0 +1,227 @@
+---
+title: "Package dependencies"
+date: '2026-02-12'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: false
+categories:
+- Week04
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+
+# Outline
+
+- file structures of packages
+
+- documentation
+
+- development cycle
+
+<br>
+<br>
+<br>
+
+Resource: [R packages](http://r-pkgs.had.co.nz/) by Hadley Wickham
+
+# Package dependencies
+
+declared through `DESCRIPTION` file
+
+three levels: Suggests, **Imports**, Depends (weakest to strongest)
+
+
+
+# Package dependencies: Imports, Suggests
+
+-   **Imports:** packages in this list must be present for your package to work
+    -   Imports are NOT attached when your package is loaded
+    -   You must refer to functions in these packages using `package::function()` or import them using roxygen tags (`@import`, `@importFrom`)
+-   **Suggests:** packages in this list may add functionality but are not necessary
+    -   e.g. for example data, unit tests, build vignettes
+
+
+# Package dependencies:  Depends
+
+-   **Depends:** packages in this list are attached when your package is loaded\
+    **Hint:** It is better practice to use `Imports` rather than `Depends`. `Depends` might overwrite a previously loaded function of the same name: [Namespaces reference](http://r-pkgs.had.co.nz/namespace.html#namespace) - why Depends is a bad idea
+
+
+# Minimize dependencies!
+
+Try to keep dependencies as light as possible: [It Depends](https://r-pkgs.org/dependencies-mindset-background.html#dependencies-are-not-equal)
+
+DO NOT include [tidyverse](https://www.tidyverse.org/blog/2018/06/tidyverse-not-for-packages/) as a dependency.
+
+
+`pak` shows dependencies
+```{r message = TRUE}
+pak::pkg_deps_tree("glue") # light package
+pak::pkg_deps_tree("devtools") # heavy package
+```
+
+
+
+# Common Problems 
+
+```
+❯ checking dependencies in R code ... WARNING
+  'library' or 'require' call to ‘dplyr’ in package code.
+    Please use :: or requireNamespace() instead.
+    See section 'Suggested packages' in the 'Writing R Extensions' manual.
+```
+
+
+```
+❯ checking dependencies in R code ... WARNING
+  '::' or ':::' imports not declared from:
+    ‘gh’ ‘lubridate’ ‘purrr’ ‘stringdist’
+  'library' or 'require' call not declared from: ‘dplyr’
+  ':::' call which should be '::': ‘purrr:::map_chr’
+    See the note in ?`:::` about the use of this operator.
+```
+
+```
+❯ checking R code for possible problems ... NOTE
+  ghc: no visible global function definition for ‘hclust’
+  ghc: no visible global function definition for ‘as.dist’
+  ghc: no visible global function definition for ‘cutree’
+  ghc: no visible global function definition for ‘mutate’
+  ghc: no visible global function definition for ‘group_by’
+```
+
+```
+❯ checking package dependencies ... ERROR
+  Namespace dependency missing from DESCRIPTION Imports/Depends entries: ‘gh’
+```
+
+# Common Problems  ... and approaches
+
+```
+❯ checking dependencies in R code ... WARNING
+  'library' or 'require' call to ‘dplyr’ in package code.
+    Please use :: or requireNamespace() instead.
+    See section 'Suggested packages' in the 'Writing R Extensions' manual.
+```
+
+::: {.fragment}
+remove any calls to `library` or `require`
+
+:::
+::: {.fragment}
+
+in the console run `usethis::use_package("dplyr")` (places package "dplyr" into the DESCRIPTION file)
+
+:::
+::: {.fragment}
+
+specifying (minimal) version is optional 
+
+:::
+::: {.fragment}
+
+Call functions as `dplyr::fun` or add to function documentation the line:
+
+```
+#' @importFrom dplyr group_by mutate
+```
+:::
+
+# Common Problems  ... and approaches (2)
+
+```
+❯ checking dependencies in R code ... WARNING
+  '::' or ':::' imports not declared from:
+    ‘gh’ ‘lubridate’ ‘purrr’ ‘stringdist’
+  'library' or 'require' call not declared from: ‘dplyr’
+  ':::' call which should be '::': ‘purrr:::map_chr’
+    See the note in ?`:::` about the use of this operator.
+```
+
+::: {.fragment}
+add four more packages to DESCRIPTION
+
+```
+usethis::use_package("gh")
+usethis::use_package("lubridate")
+usethis::use_package("purrr")
+usethis::use_package("stringdist")
+```
+:::
+
+::: {.fragment}
+change `:::` to `::` in call to `purrr::map_chr`
+
+:::
+
+# Common Problems  ... and approaches (3)
+
+```
+❯ checking R code for possible problems ... NOTE
+  ghc: no visible global function definition for ‘hclust’
+  ghc: no visible global function definition for ‘as.dist’
+  ghc: no visible global function definition for ‘cutree’
+  ghc: no visible global function definition for ‘mutate’
+  ghc: no visible global function definition for ‘group_by’
+```
+
+
+::: {.fragment}
+all of these problems are solved by using 
+
+```
+importFrom pkg function
+```
+:::
+
+::: {.fragment}
+Might need a call to `?fun` to find the package in which a function is defined
+
+```
+importFrom stats hclust as.dist cutree
+```
+:::
+
+
+# Common Problems  ... and approaches (4)
+
+```
+❯ checking package dependencies ... ERROR
+  Namespace dependency missing from DESCRIPTION Imports/Depends entries: ‘gh’
+```
+
+::: {.fragment}
+another call to `usethis::use_package("gh")`
+:::
+
+# Common problems with tidyverse functions
+
+```
+❯ checking R code for possible problems ... NOTE
+  ghc: no visible binding for global variable ‘cluster’
+  ghc: no visible binding for global variable ‘prefix’
+  last_pushed: no visible binding for global variable ‘pushed_at’
+  last_pushed: no visible binding for global variable ‘name’
+  Undefined global functions or variables:
+    cluster name prefix pushed_at
+```
+
+
+
+# Your Turn {background-color="#006666"}
+
+-   Expand the functionality of `hello` to produce an output of `Hello, string!` for `hello(string)`.
+
+-   Insert the corresponding roxygen tags to expand on the documentation
+
+-   Run `devtools::document()`
+
+-   Check that the help for `hello` is updated

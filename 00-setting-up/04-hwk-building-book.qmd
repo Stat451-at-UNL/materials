@@ -1,0 +1,12 @@
+---
+title: 'Homework 1: Building a book'
+date: '2026-01-22'
+type: Homework
+categories:
+- HW
+- Week02
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-1-building-a-book/README.md >}}

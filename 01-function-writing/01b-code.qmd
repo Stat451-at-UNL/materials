@@ -1,0 +1,15 @@
+---
+title: 'Code from class'
+type: Code
+date: '2026-01-20'
+categories:
+- code
+- Week02
+---
+
+```{r eval=FALSE}
+#| file: ../../code/2026-01-20-code.R
+#| echo: true
+```
+
+

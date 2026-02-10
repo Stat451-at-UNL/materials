@@ -1,0 +1,235 @@
+---
+title: 'Expressions'
+date: '2026-02-12'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+categories:
+- Week03
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(rlang)
+```
+
+# Literally everything in R is an object
+
+... even the language itself
+
+```{r}
+x <- 5
+e <- expr(2*x)
+
+e
+eval(e)
+```
+`e` is called a **defused expression** ("unevaluated expression", "call", "blueprint", "recipe"). 
+
+Foremost `e` is a **language** object
+```{r}
+is.language(e)
+is.call(e)
+```
+
+# Expressions are list-like
+
+```{r}
+x <- 1:10
+e <- expr(x[x%%3==0])
+```
+
+Expressions have multiple parts:
+
+```{r}
+length(e)
+as.list(e)
+```
+
+# Expressions have a tree structure
+
+`e` is of class `call` (and has type `language`) 
+
+```{r}
+as.list(e)
+as.list(e) |> sapply(FUN = class)
+as.list(e) |> sapply(FUN = typeof)
+```
+# Into the rabbit hole or up the tree?
+
+`e[[3]]` is of class `call` (and has type `language`) 
+
+```{r}
+as.list(e[[3]])
+as.list(e[[3]]) |> sapply(FUN = class)
+as.list(e[[3]]) |> sapply(FUN = typeof)
+```
+
+# The Abstract Structure Tree
+
+Language objects form an abstract tree of pre-fix functions:
+
+```{r}
+library(lobstr)
+ast(x[x%%3==0])
+```
+All leaves are either constants (`0`, `3`) or **symbols** (`x`)
+
+# Replacement operations are top heavy
+
+```{r}
+# multiply all multiples of 3 in x by 15
+ast(x[x%%3==0] <- 15)
+
+```
+compare this to `ast(y <- x[x%%3==0])`
+
+
+# An Expression is ...
+
+any element of the following inductively defined set:
+
+- a **constant** (like `1, 2, pi`)
+
+```{r}
+expr(1) |> str()
+```
+
+- a **symbol** (like `x, mtcars, diamonds`)
+
+```{r}
+expr(mtcars) |> str()
+```
+
+- or a **call**, mathematical operation or function call
+
+```{r}
+expr(x^2) |> str()
+```
+
+# Base R also allows vectors of expressions:
+
+`as.expression`, `expression`, and `is.expression` assume vectors of expressions ... and react a bit differently.
+
+```{r}
+is.expression(as.expression(exp(1)))
+
+is_expression(as.expression(exp(1)))
+
+is.expression(expr(exp(1)))
+
+is_expression(expr(exp(1)))
+```
+
+We will stick to `rlang` definitions (functions with `_`)
+
+# Evaluating unevaluated expressions
+
+Unevaluated expressions can be evaluated ... result depends on environment in which they are evaluated
+
+```{r}
+eval(e) # default environment is parent.frame() - i.e.
+# where call to eval was made
+
+eval(e, envir=env(x=pi))
+```
+
+
+# Strings and Symbols
+
+```{r}
+ast(x <- "x")
+```
+
+Symbols are (names of) objects - represented without quotes
+
+Strings are shown with quotes
+
+`sym` takes as input a character and returns a symbol
+
+```{r}
+sym("cyl") 
+```
+```{r error = TRUE}
+eval(sym("cyl"))
+```
+```{r error = TRUE}
+eval(sym("cyl"), envir = mtcars)
+```
+
+# Names of symbols and multiple symbols
+
+We get the name of a symbol back using `as_string`: 
+
+```{r}
+as_string(sym("x"))
+```
+... and we create multiple symbols using `syms`:
+
+`syms` creates a list of symbols, i.e. 
+
+```{r}
+syms(paste("means", LETTERS[1:5], sep = "_"))
+```
+
+# Programmatic use
+
+... in interactive use `sym`, `syms` or `as_string` are not very useful ... 
+
+
+making a function call `base::call` or `rlang::call2`
+
+```{r}
+call("f", 1, 2, 3)
+
+call2("f", 1, 2, call2("+", 1, 2))
+```
+
+
+# Your Turn  {background-color="#006666"}
+
+Can we write the following expressions programmatically?
+
+```{r eval = FALSE}
+means_D = diamonds %>% filter(color == "D")
+means_E = diamonds %>% filter(color == "E")
+means_F = diamonds %>% filter(color == "F")
+means_G = diamonds %>% filter(color == "G")
+means_H = diamonds %>% filter(color == "H")
+```
+
+# 
+
+all but the assignment: 
+
+```{r}
+library(ggplot2)
+diam_color <- function (col) {
+  diamonds |> dplyr::filter(color == col)
+}
+
+lapply(LETTERS[4:8], diam_color)
+```
+# 
+
+```{r}
+call2("<-", sym("x"), 1)
+```
+
+```{r}
+long_list <- lapply(LETTERS[4:8], function(x) {
+  call2("<<-", sym(paste("diamonds", x, sep="_")), diam_color(x)) |> eval()
+})
+
+head(diamonds_D)
+```
+

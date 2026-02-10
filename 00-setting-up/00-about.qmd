@@ -1,0 +1,103 @@
+---
+title: 'About Stat 451'
+date: '2026-01-13'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: false
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+# Stat 451/Stat 892 - Development of Statistical Software
+
+> Advanced statistical software development. Packaging code into functions, intelligent software design, compiled languages to speed up code, development and release cycles.
+
+This course is fulfilling the requirement of ACE 10 scholarly product. 
+The final project will be a statistical software package that fills a need in the ecosystem.
+
+Pre-reqs: Stat 302, Stat 351
+
+
+# Objectives
+
+At the end of the course you should be able to ... 
+
+1. Packaging code into functions
+2. Evaluate functions' performance with regard to their accuracy, maintainability, and speed
+3. Have working knowledge of the R package structure and the development cycle
+4. Document and publish your work on your online portfolio
+
+
+# Course Setup
+
+4-5 modules aimed to cover first half of the semester
+
+focus on project work for second half
+
+
+# Modules
+
+0. Setup of work environment
+1. Function writing (Review, Objective 1, 2)
+2. Profiling code (Objective 2)
+3. Package structure (Objective 3)
+4. Package Documentation (Objective 3)
+5. Computational Tools (Objective 4)
+
+
+
+# Assessments
+
+- 50%: weekly homework assignments 
+- 25%: midterm 
+- 25%: final project
+
+# Homework
+
+- One every week
+- 2-3 hours
+- Revise what we covered, plus synthesize some new information
+
+- Start early: if I have time, I will give feedback on your Github classroom commits
+
+- One re-submission after the due-date (within 2 weeks)
+
+# Midterm
+
+- In-class 
+- Homework-like problem
+- Open book, open notes
+- Take-home exam, tentatively aimed for the week before Spring Break
+
+# Project (ACE 10)
+
+- Individual or team based
+
+- Create an R package
+
+- Document the R package in a vignette
+
+- Publish the R package
+
+# Lectures
+
+- Come to class prepared
+- Be ready to work: bring your computer
+- Talk to each other!
+- Slides are posted at [https://stat451-at-unl.github.io/Stat451.github.io/](https://stat451-at-unl.github.io/Stat451.github.io/)
+
+- I'm aiming for 3:1 ratio of Lecture:'Your Turn'
+
+# Syllabus
+
+[https://canvas.unl.edu/courses/205501/assignments/syllabus](https://canvas.unl.edu/courses/205501/assignments/syllabus)
+
+# Questions?

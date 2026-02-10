@@ -1,0 +1,13 @@
+---
+title: 'Homework 4: Package `divisor`'
+type: Homework
+date: '2026-02-19'
+categories:
+- HW
+- Week05
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-4-pkg-divisor/Readme.md >}}
+

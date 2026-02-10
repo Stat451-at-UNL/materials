@@ -1,0 +1,240 @@
+---
+title: 'Quasiquotation'
+date: '2026-02-10'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+categories:
+- Week03
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(rlang)
+```
+
+# R sometimes quotes and sometimes doesn't ...
+
+a call to `library` doesn't need quotes, but would work just fine with them:
+
+```{r}
+library(ggplot2)
+```
+
+
+a call to `install.packages` needs a quoted argument or it fails:
+
+```{r error=TRUE}
+install.packages(ggplot2)
+```
+
+Idea of **quasiquotation**
+
+# Quasiquotation is ...
+
+the combination of 
+
+- **quotation**: capturing an  expression before evaluation
+
+- **unquotation**: selectively evaluate parts of a (quoted/unevaluated) expression. 
+
+... useful for programming (really, meta-programming)
+
+# Quoting
+
+- behind a call to `library` without quotes
+
+- takes an argument and puts quotes around it
+
+```{r}
+like_paste <- function(..., sep = " ") {
+  args <- ensyms(...)
+  paste(sapply(args, as_string), collapse = sep)
+}
+
+like_paste(I, just, wanted, to, say, hello, "!")
+paste("I", "just", "wanted", "to", "say", "hello", "!")
+```
+
+# Unquoting
+
+When we program, we sometimes don't want the automatic quotes
+
+```{r}
+time <- "morning"
+person <- "Heike"
+
+paste("Good", time, person)
+
+like_paste(Good, time, person)
+```
+Bang-bang operator `!!` prevents the automatic quoting:
+
+```{r}
+like_paste(Good, !!time, !!person)
+```
+# Partial Unquoting
+
+In the example we call the arguments to `paste` and `like_paste` in exactly the opposite way: 
+
+```{r eval=FALSE}
+paste("Good", time, person)
+like_paste(Good, !!time, !!person)
+```
+
+# Closer look at Quoting
+
+Four main functions for quoting (i.e. functions that capture an expression/symbol before it's evaluated)
+
+- Capturing Expressions: 
+
+  - single expression: `expr` and `enexpr`
+  - multiple expressions: `exprs` and `enexprs`
+
+- Capturing Symbols: `sym`, `ensym`, and `ensyms` (multiple)
+
+
+# `expr` and `enexpr`
+
+`expr` is for interactive use:
+
+```{r}
+e1 <- expr(x) # prevents `x` from being evaluated
+e2 <- expr((a + b)/2)
+
+e1; e2
+```
+
+In a function we are usually more interested in how the function was called, need `en`riched version of `expr`:
+
+```{r}
+f1 <- function(x) expr(x) 
+f1(a+b/c) # duh
+```
+
+```{r}
+f2 <- function(x) enexpr(x) 
+f2(a+b/c)
+```
+
+
+# Capturing symbols
+
+`ensym` and `ensyms` are special cases of `enexpr` and `enexprs` that capture the expression(s) and also check that each expression is a symbol:
+
+```{r}
+f3 <- function(...) ensyms(...)
+```
+
+```{r}
+f3(a, bb = b)
+```
+
+```{r error= TRUE}
+f3(a/2, b)
+```
+
+# Your Turn  {background-color="#006666"}
+
+Can we implement a function `my_select` now that works the same way as `dplyr::select`? 
+
+```{r eval=FALSE}
+my_select <- function (.data, ...) {
+
+}
+```
+
+```{r}
+mtcars |> dplyr::select("mpg", cyl, disp) |> head()
+```
+
+# 
+
+```{r}
+my_select <- function (.data, ...) {
+  vars <- ensyms(...)
+#  browser()
+  varnames <- sapply(vars, as_string)
+  .data[,varnames]
+}
+
+mtcars |> my_select("mpg", cyl, disp) |> head()
+```
+# Does `my_select` also work with indices?
+
+```{r}
+mtcars |> dplyr::select(1, 2, 3) |> dim()
+```
+
+```{r error = TRUE}
+mtcars |> my_select(1, 2, 3) |> dim()
+```
+
+`ensyms` allows only symbols
+
+# Another approach
+
+```{r}
+my_select <- function (.data, ...) {
+  vars <- enexprs(...)
+  select_expr <- function(e) {
+    if (is_symbol(e) | is.numeric(e)) return(.data[,eval(e)])
+      # more complicated case: we have an expression
+    browser()
+  }
+  lapply(vars, FUN = select_expr) |> data.frame()
+}
+
+mtcars |> dplyr::select(1, 2, 3) |> dim()
+mtcars |> my_select(1, 2, 3) |> dim() # dimension is right, names are horribly wrong
+
+mtcars |> my_select(1, 2, 3) |> head()
+```
+
+# We could use the base function `subset` ...?
+
+```{r}
+
+my_select <- function (.data, ...) {
+  vars <- enexprs(...)
+  select_expr <- function(e) {
+    subset(.data, select = eval(e), subset=T, drop=FALSE)
+  }
+  lapply(vars, FUN = select_expr) |> data.frame()
+}
+
+mtcars |> my_select(1, 2, 3) |> head()
+```
+
+# Using any selector function fails
+
+```{r error = TRUE}
+mtcars |> my_select(everything()) |> head()
+
+```
+
+`tidyselect` (re-)implements a partial indexing system  with `:`, `!`, `&`, `|` and `c()`
+
+... we would have the tools though :) 
+
+# Base R and  `rlang`
+
+-  `quote` acts like `expr`
+
+- `alist` acts like `exprs`
+
+- `substitute` is most like `enexpr`
+
+
+We will stick with `rlang` for now.
+
+

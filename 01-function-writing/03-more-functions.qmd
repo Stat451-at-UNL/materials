@@ -1,0 +1,133 @@
+---
+title: 'More on recursions and special R functions'
+date: '2026-01-27'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+# Recursive functions
+
+the prototypical function - similar to proof by induction:
+  
+- define values for endings
+
+- get value for f(x) from value of f(x-1)
+
+# Your Turn  {background-color="#006666"}
+
+Implement a recursive function `fibonacci (n, a, b)` that calculates the $n$th
+fibonacci number using starting values $a$ and $b$:  
+
+The Fibonacci series is defined as:
+$$
+\begin{eqnarray*}
+x_1 &=& a,\ \  x_2 = b\\
+x_n &=& x_{n-2} + x_{n-1} \ \text{ for } n \ge 3
+\end{eqnarray*}
+$$
+
+# Direct implementation
+
+Functions with multiple calls (tree recursions) to themselves are inefficient and run the risk of stack overflows 
+
+```{r}
+fibonacci <- function(n, a, b) {
+  stopifnot(is.numeric(n), n >= 0)
+  if (n == 0) return(a)
+  if (n == 1) return(b)
+  return(fibonacci(n-1, a, b) + fibonacci(n-2, a, b))
+}
+
+fibonacci(10, 1,1)
+fibonacci(25, 1,1)
+```
+
+# Fibonacci Evaluation
+
+![](fibonacci.png)
+
+
+# Sequential Solution
+
+```{r}
+fibonacci_seq <- function(n, seq = c(a, b)) {
+  stopifnot(is.numeric(n), n >= 1)
+  if (n == 1) return(seq[1])
+  if (n == 2) return(seq)
+  return(
+    fibonacci_seq(n-1, 
+      seq = c(seq, seq[length(seq)] + seq[length(seq)-1]))
+  )
+}
+
+fibonacci_seq(25, seq=c(1,1))
+```
+# Infix functions
+
+Operators in R, such as `+`, `-`, `*`, `^`, ... are defined as **infix** functions and equivalent to functions of the form `` `operator` ``(el1, el2)
+
+```{r}
+2 + 3 # same as 
+`+`(2, 3)
+```
+
+This also means that they can be overwritten ...
+
+# Example: String addition
+
+We can define `+` between two strings as concatenation:
+
+```{r}
+`+` <- function(x, y) {
+  if (all(is.character(x) & is.character(y))) {
+    return(paste(x, y, sep=""))
+  }
+  base::`+`(x, y) # can't write x + y here - calls itself
+}
+
+"hel" + "lo"
+c("h", "m", "f", "r", "w", "p", "s") + "ound"
+
+rm(`+`) # set the addition back to the original
+```
+# Replacement functions
+
+Some functions e.g. `names` are allowed on the left hand side of an assignment: 
+
+```{r}
+x <- 5
+names(x) <- "this is a value"
+x
+```
+
+There are two implementations of this function: `names` and `names<-`
+
+The second function is called for replacements, such as the one above. 
+
+Equivalently, we could have called it as:
+
+```{r}
+`names<-`(x, "this is a value")
+```
+
+Which other replacement functions can you think of?
+
+::: {.fragment}
+Check with `apropos("<-")`
+:::

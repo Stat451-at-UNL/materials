@@ -1,0 +1,199 @@
+---
+title: 'Floating Point Arithmetic'
+date: '2026-01-22'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+# Is it the same?
+
+0.1 + 0.05 is equal to 0.15. Right?
+
+::: {.fragment}
+
+```{r}
+0.1 + 0.05 == 0.15
+```
+
+:::
+
+::: {.fragment}
+Language is not broken - it's floating point math: 
+
+[https://0.30000000000000004.com/](https://0.30000000000000004.com/)
+
+:::
+
+::: {.fragment}
+
+```{r}
+print(0.1, digits=17)
+print(0.05, digits=17)
+print(0.15, digits=17)
+```
+
+:::
+
+# Binary Floating Point Numbers 
+
+Decimal number 0.1 in base $\beta = 2$ has repeating sequence
+$0.0\overline{0011} = 0.0\ 0011\ 0011\ 0011\ 0011\ 0011\ ...$
+
+For precision $p = 3$, decimal 0.1 turns into binary $1.10 \times 2^{-4}$
+
+Converted back to decimal, this corresponds to 0.09375
+
+Total error: 0.1 - 0.09375 = 0.00625
+
+Relative error: (0.1 - 0.09375)/0.1 = 0.0625 = 6.25%
+
+# Relative error and ULPs
+
+Any real-valued number $z$ represented as FPN $d.d...d \times \beta^e$ with precision $p$ is rounded to $p$ digits - i.e. could be off by up to $.5$ in the last digit = 0.5 ULP (units in the last place). 
+
+This corresponds to a (relative) error of up to $\beta/2 \times \beta^{-p}$. 
+
+
+We define  the *Machine epsilon* as the largest relative error:
+$$
+\varepsilon := \frac{\beta}{2} \beta^{-p}
+$$
+
+# Machine error in R 
+
+```{r}
+.Machine$double.eps
+log2(.Machine$double.eps)
+```
+
+i.e. since $2\varepsilon = \beta^{-(p-1)}$, R works with $p = 53$
+
+```{r}
+.Machine$double.digits
+```
+
+representation of any decimal is faithful to about 16 digits 
+
+# Subtracting Floating Points
+
+Subtracting $x$ and $y$ in floating arithmetic can be done by first scaling both numbers to the same exponent, then subtracting them and finally rounding back to $p$ digits.
+
+Example: $p = 3$, $x = 9.97 \times 10^{-1}$, and $y = 1.25 \times 10^{-5}$
+
+$$
+\begin{eqnarray*}
+x &=& 9.97 × 10^{-1}\\
+y &=& .000128 × 10^{-1}\\
+x - y &=& 9.969872 × 10^{-1},
+\end{eqnarray*}
+$$
+which rounds to $9.97 × 10^{-1}$.
+
+Unfortunately, this is usually not what happens - FP arithmetic keeps number of digits fixed.
+
+# Floating Point Arithmetic
+
+when the smaller operand is shifted right, digits are simply discarded 
+
+Example: $p = 3$, $x = 9.97 \times 10^{-1}$, and $y = 1.28 \times 10^{-5}$
+
+$$
+\begin{eqnarray*}
+x &=& 9.97 × 10^{-1}\\
+y &=& 0.00 × 10^{-1}\\
+x - y &=& 9.97 × 10^{-1},
+\end{eqnarray*}
+$$
+Result is the same as before. 
+
+::: {.fragment}
+This is the ideal case and doesn't happen always.
+:::
+
+# Subtraction, less ideal
+
+Example: $p = 3$, $x = 9.97 \times 10^{-1}$, and $y = 1.28 \times 10^{-2}$
+
+$$
+\begin{eqnarray*}
+x &=& 9.97 × 10^{-1}\\
+y &=& 0.12 × 10^{-1}\\
+x - y &=& 9.85 × 10^{-1},
+\end{eqnarray*}
+$$
+Correct result is 0.9842 - so FP arithmetic is off by .8 ulps.
+
+# Catastrophic Cancellations
+
+Subtracting floating point digits can cancel out significant digits and reveal errors. 
+
+**Theorem:**
+the relative error of subtracting two floating point numbers with parameters $\beta$ and $p$ can be as big as $\beta - 1$
+
+**Proof:**
+Consider the two numbers 1.0...0 and 0.b...b (for $b = \beta-1$).
+The exact difference is $\beta^{-p}$.
+With the width fixed to $p$ the difference rounds to $\beta^{-p+1}$, for a relative error of $| \beta^{-p+1}-\beta^{-p}|/\beta^{-p} = \beta-1$.
+
+# Some FP Arithmetic results
+
+For proofs, see [https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html](https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html)
+
+- a single guard digit (i.e. intermediate rounding to $p + 1$) ensures that 
+any sum of $x$ and $y$ has a relative error of at most $2 \varepsilon$ (double eps)
+
+- adding positive numbers $x$ and $y$ has a relative error of at most $2 \varepsilon$, even without guard digit.
+
+- for $x, y$ with  $y/2 \le  x \le 2y$ and one guard digit, the difference $x - y$ is exact
+
+# Your Turn  {background-color="#006666"}
+
+Assume that you are using $\beta = 10$ and $p = 3$. 
+
+- What is the relative error of the expression $x^2 - y^2$ for $x = 3.34, y = 3.33$?
+
+- How does the relative error change for $(x - y)(x + y)$ for $x = 3.34, y = 3.33$?
+
+# Conclusions (for now)
+
+- optimizing all arithmetic expressions for smallest errors is not practically feasible
+- enough for now: be aware that some expressions are more prone to errors due to floating point arithmetic
+- we will collect strategies that help us circumvent some problems
+
+# Better Practice 
+
+- don't check floating point numbers for equality with `==` (or any derivatives). Instead use functions with in-built tolerance, e.g.
+
+```{r}
+0.1+0.2 == 0.3 # don't use
+dplyr::near(0.1+0.2, 0.3)
+all.equal(0.1+0.2, 0.3)
+abs(0.1+0.2 - 0.3) <= .Machine$double.eps 
+```
+
+# Better Practice (2)
+
+- be wary of long sums: arrange, if possible such that similar-sized terms are being added 
+
+- check differences for catastrophic cancellation
+
+- Conceptual math != implemented math - the trick is often in the detail, e.g. see [Algorithms for calculating the variance](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online)
+
+- use reliable sources for regular math routines (e.g. LAPACK, BLAS, and derivatives)
+
