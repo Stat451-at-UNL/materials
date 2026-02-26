@@ -1,0 +1,31 @@
+---
+title: 'Unit Testing'
+date: '2026-03-10'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: false
+categories:
+- Week01
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+# More function writing
+
+Dealing with errors: 
+
+- Debugging
+- Error handling
+
+Defensive programming:
+
+- Assertions
+- unit testing
+
+

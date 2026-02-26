@@ -1,0 +1,208 @@
+---
+title: 'Tidy Evaluation'
+date: '2026-02-26'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: true
+categories:
+- Week06
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(rlang)
+```
+
+# Tidy Evaluation is comprised of
+
+- quasiquotation,
+
+- quosures,
+
+- and data masks
+
+
+# Quosures
+
+Idea: capture an expression with its environment (for later evaluation)
+
+- functions `enquo` and `enquos` (and lesser used, `quo` and `quos`): 
+
+```{r}
+quo(x <- 2*exp(1))
+
+f <- function(x) enquo(x)
+
+f(a+b+d/2)
+```
+
+
+
+- also: `new_quosure`
+
+```{r}
+qu <- new_quosure(expr(x^2+y), env(x = 2, y = 1))
+qu
+eval_tidy(qu)
+```
+# Quosures 
+
+```{r}
+f <- function(...) {
+  x <- 1
+  g(..., f = x)
+}
+g <- function(...) {
+  enquos(...)
+}
+
+x <- 0
+qs <- f(global = x)
+qs
+```
+#
+
+```{r}
+q4 <- new_quosure(expr(x + y + z))
+
+q4
+```
+
+```{r}
+q4 |> get_expr()
+q4 |> get_expr() |> expr_text()
+
+q4 |> get_env()
+```
+
+# Your Turn  {background-color="#006666"}
+[From Advanced R](https://adv-r.hadley.nz/evaluation.html#exercises-62):
+
+1. Predict what each of the following quosures will return if evaluated.
+
+```{r eval = FALSE}
+x <- 0
+q1 <- new_quosure(expr(x), env(x = 1))
+q2 <- new_quosure(expr(x + !!q1), env(x = 10))
+q3 <- new_quosure(x + eval_tidy(q2), env(x = 100))
+```
+
+2. Write an `enenv()` function that captures the environment associated with an argument. (Hint: this should only require two function calls.)
+
+
+# 
+
+```{r}
+enenv <- function(x) {
+  qu <- enquo(x)
+  get_env(qu)
+}
+
+enenv(q3)
+```
+# Data Masks
+
+Sometimes we are dealing with expressions that contain both variables (symbols from a data frame) and objects from an environment
+
+In evaluations we need to consider both the data frame and the environment
+
+The function eval_tidy has `data` as a third argument; if it is specified, it will be used first when evaluating expressions:
+
+```{r}
+eval_tidy(expr(mpg), data = mtcars)
+```
+
+# Tidyverse programming
+
+Data masking introduces some ambiguity about the environment in which each object lives, e.g
+
+```
+1/mpg / mile_to_100km * gallons_to_liter
+```
+
+In the `.data` or in the parent environment `.env`?
+
+```{r}
+gallons_to_liter =  3.79
+mile_to_100km = 1.60934 /100
+
+mtcars |> 
+  dplyr::mutate(
+    lper100km = 1/mpg / mile_to_100km * gallons_to_liter
+) |> dplyr::select(mpg, lper100km) |> dplyr::arrange(lper100km)
+```
+
+# Data Pronouns
+
+`.data$x` is always the x variable in the data frame `.data`
+
+`.env$x` is always the x object in the environment `.env`
+
+When data masking is used in programming, the expectation of R CMD check is that the ambiguity is resolved
+
+e.g.:
+
+```
+  ghc: no visible binding for global variable ‘cluster’
+```
+is resolved by using `.data$cluster` in the code (this introduces a dependence to the `rlang` package)
+
+
+# Your Turn  {background-color="#006666"}
+
+Can we implement a function `my_select` now that works the same way as `dplyr::select`? 
+
+```{r eval=FALSE}
+my_select <- function (.data, ...) {
+
+}
+```
+
+# 
+
+From [Advanced R](https://adv-r.hadley.nz/evaluation.html#select)
+
+```{r}
+select2 <- function(data, ...) {
+  dots <- enquos(...)
+
+  vars <- as.list(set_names(seq_along(data), names(data)))
+  cols <- unlist(purrr::map(dots, eval_tidy, vars))
+
+  data[, cols, drop = FALSE]
+}
+```
+
+```
+select2(mtcars, 1:2, "wt", dplyr::starts_with("d"))
+```
+
+Still a no.
+
+# `my_select` with a cheat
+
+```{r}
+my_select <- function (.data, ...) {
+  vars <- enquos(...)
+  
+  res <- lapply(vars, FUN = function(x) {
+    e <- get_expr(x)
+    if (is_symbol(e)) e <- as_string(e)
+    if (is_call(e)) e <- tidyselect::eval_select(e, data=.data)
+    `[`(.data, e) 
+  }) |> data.frame()
+}
+```
+
+```{r}
+mtcars |> my_select("mpg", cyl, 3, tidyr::starts_with("d")) |> head()
+```

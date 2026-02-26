@@ -1,6 +1,6 @@
 ---
 title: 'Expressions'
-date: '2026-02-12'
+date: '2026-02-19'
 engine: knitr
 type: slides
 execute:
@@ -33,7 +33,7 @@ e <- expr(2*x)
 e
 eval(e)
 ```
-`e` is called a **defused expression** ("unevaluated expression", "call", "blueprint", "recipe"). 
+`e` is called a **defused** or **quoted expression** ("unevaluated expression", "call", "blueprint", "recipe"). 
 
 Foremost `e` is a **language** object
 ```{r}
@@ -82,16 +82,18 @@ Language objects form an abstract tree of pre-fix functions:
 library(lobstr)
 ast(x[x%%3==0])
 ```
-All leaves are either constants (`0`, `3`) or **symbols** (`x`)
+All leaves are either **constants** (`0`, `3`) or **symbols** (`x`)
 
-# Replacement operations are top heavy
+Nodes are **functions** (operators are infix functions) (`[`, `==`, `%%`)
 
-```{r}
-# multiply all multiples of 3 in x by 15
-ast(x[x%%3==0] <- 15)
+<!-- # Replacement operations are top heavy -->
 
-```
-compare this to `ast(y <- x[x%%3==0])`
+<!-- ```{r} -->
+<!-- # multiply all multiples of 3 in x by 15 -->
+<!-- ast(x[x%%3==0] <- 15) -->
+
+<!-- ``` -->
+<!-- compare this to `ast(y <- x[x%%3==0])` -->
 
 
 # An Expression is ...

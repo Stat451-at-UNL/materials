@@ -220,7 +220,7 @@ add(10, 1)
 
 -   Already done? Expand the functionality of `hello` to produce an output of `Hello, string!` for `hello(string)`. Update `?hello` accordingly.
 
-# Roxygen tags
+# Roxygen tags {.r-fit-text}
 
 | Tag | Purpose |
 |:----|:---------|
@@ -235,7 +235,7 @@ add(10, 1)
 | `@import` | Call all functions from another package natively (without `package::function`) |
 | `@importFrom` | Call a single function from another package natively |
 
-# Commands in Roxygen
+# Commands in Roxygen {.r-fit-text}
 
 Most of these elements can also be replaced by markdown
 

@@ -1,13 +1,13 @@
 ---
 title: 'Quasiquotation'
-date: '2026-02-10'
+date: '2026-02-19'
 engine: knitr
 type: slides
 execute:
   error: true
   eval: true
 categories:
-- Week03
+- Week06
 format:
   revealjs:
     navigation-mode: vertical
@@ -238,3 +238,63 @@ mtcars |> my_select(everything()) |> head()
 We will stick with `rlang` for now.
 
 
+# Unquoting operations
+
+- we have used two functions so far: `eval` and `!!`
+
+- generally, we use `eval` to evaluate a whole statement
+
+```{r}
+e <- expr(x <- 2*exp(1))
+
+identical(eval(e), x)
+```
+
+- `!!` is evaluating individual arguments in functions
+
+```{r}
+x <- 2*exp(1)
+
+identical(expr(!!x), x)
+```
+# Your Turn  {background-color="#006666"}
+
+```{r}
+xy <- expr(x + y)
+xz <- expr(x + z)
+yz <- expr(y + z)
+abc <- exprs(a, b, c)
+```
+
+Use quasiquotation to construct the following calls:
+
+```{r eval = FALSE}
+(x + y) / (y + z)
+-(x + z) ^ (y + z)
+(x + y) + (y + z) - (x + y)
+atan2(x + y, y + z)
+sum(x + y, x + y, y + z)
+sum(a, b, c)
+mean(c(a, b, c), na.rm = TRUE)
+foo(a = x + y, b = y + z)
+```
+
+Note: `!!!` evaluates all expressions in a list
+
+# 
+
+```{r}
+expr(!!xy / !!yz)
+
+expr(-(!!xz) ^ (!!yz))
+
+expr((!!xy) + !!yz - (!!xy))
+
+expr(atan((!!xy), (!!yz)))
+
+expr(sum(!!!abc))
+
+expr(mean(c(!!!abc), na.rm=TRUE))
+
+expr(foo(a = !!xy, b = !!yz))
+```

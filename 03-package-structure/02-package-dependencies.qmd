@@ -1,6 +1,6 @@
 ---
 title: "Package dependencies"
-date: '2026-02-12'
+date: '2026-02-17'
 engine: knitr
 type: slides
 execute:

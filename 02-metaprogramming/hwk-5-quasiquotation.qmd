@@ -1,0 +1,13 @@
+---
+title: 'Homework 5: Quasi-quotation'
+type: Homework
+date: '2026-02-26'
+categories:
+- HW
+- Week06
+---
+
+Note: This assignment must be submitted in github classroom.
+
+{{< include ../../homework-repos/homework-5-quasi-quotation/Readme.Rmd >}}
+
