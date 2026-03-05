@@ -204,5 +204,5 @@ my_select <- function (.data, ...) {
 ```
 
 ```{r}
-mtcars |> my_select("mpg", cyl, 3, tidyr::starts_with("d")) |> head()
+mtcars |> dplyr::select("mpg", cyl, 3, tidyr::starts_with("d")) |> head()
 ```

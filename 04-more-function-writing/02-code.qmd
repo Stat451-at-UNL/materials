@@ -1,0 +1,15 @@
+---
+title: 'Code for testing'
+type: Code
+date: '2026-03-05'
+categories:
+- code
+- Week07
+---
+
+```{r eval=FALSE}
+#| file: ../../code/2026-03-05-testing-code.R
+#| echo: true
+```
+
+

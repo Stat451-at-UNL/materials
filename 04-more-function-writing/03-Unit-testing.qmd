@@ -1,0 +1,322 @@
+---
+title: 'Unit Testing'
+date: '2026-03-05'
+engine: knitr
+type: slides
+execute:
+  error: true
+  eval: false
+categories:
+- Week07
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+# Outline
+
+- Motivation
+
+- Automated Testing and Unit Tests
+
+- Testing Functions in R with `testthat`
+
+- Coverage
+
+- Package Checks 
+
+# Informal Testing
+
+
+- testing is part of function writing
+
+- sometimes we forget to test a special case
+
+- also: functions can create side effects and introduce new errors
+
+
+# Automate Testing with Unit Tests
+
+- Unit tests are tests that evaluate one feature of a function
+
+
+
+- run automatically after you make changes to the code
+
+
+
+- Unit tests are one part of the larger framework of _Test Driven Development_
+
+# Test Driven Development
+
+_Test Driven Development_ is an approach to programming where the unit tests are written before the actual code:
+
+- Requirements are decided in advance
+
+- Code must meet the requirements (and only the requirements)
+
+# Why use unit tests? {.smaller}
+
+For a bit of extra work, you get: 
+
+- Fewer bugs
+    - Essential functions are tested and issues are caught quickly
+    - Visual confirmation that essential features are working
+    - When debugging, write a test to pinpoint the bug (and stop it from reoccurring)
+
+- Better code structure
+    - Modular code: do only one thing per function
+    - Document functions as you write them to satisfy tests
+
+- Robust code 
+    - make big changes quickly and without downstream problems
+    - Any changes that break things should be caught with tests
+
+- (in theory) Easier to start after a break:    
+pick up at the last failed test and write code to satisfy that test
+
+
+# Tools: `testthat`
+
+`testthat`: unit testing for R packages
+  
+  - structured R package testing
+  
+  - provides functions to set up and tear down testing environments
+  
+  - runs each set of tests in a clean environment
+  
+  - reports whether each test passes or fails
+
+# Tools: `usethis`
+
+`usethis`: helper functions for R package development
+
+  - set up `testthat` for your package: `usethis::use_testthat()`
+  
+  - create new test files: `usethis::use_test("test1")` creates a new test file
+
+<br>
+Note: `testthat` works with packages. [This github issue](https://github.com/r-lib/testthat/issues/659) has a good discussion of testing outside of the package framework
+
+
+# Package Testing Workflow
+
+1. Modify your code or tests
+
+2. Test your package (`Ctrl/CMD - Shift - T`)
+
+3. Repeat until all tests pass
+
+
+# Your Turn {background-color="#006666"}
+
+```{r, eval = 2}
+install.packages(c("testthat", "usethis"))
+library(testthat)
+```
+
+1. Install the `testthat` package for unit testing and the `usethis` package (helper functions to make package development easy)
+
+2. Set the `happyR` package up to work with `testthat`
+
+```{r, eval = F}
+# Run create_package to add package infrastructure 
+# Adjust the path to refer to your current project directory
+usethis::use_testthat()
+```
+
+What does your file structure look like now? 
+
+
+
+# Testing Structure
+
+A test file consists of 
+
+1. context - a description of the test blocks in the file
+
+2. one or more test blocks:    
+`test_that(description, {test statements})`
+
+```{r, eval = F}
+context("test-basics")
+
+# Test block
+test_that(
+  # description
+  "multiplication works",
+  { # test statements inside this block
+    expect_equal(2 * 2, 4)
+  }
+)
+```
+
+# Test Statements {.smaller}
+
+`testthat` has a series of expectation functions:
+
+function | description
+---- | ----
+`expect_equal(obj, value)` | Is the object equal to a value?
+`expect_error(expr)` | Does the expression produce an error?
+`expect_gt(obj, value)` | Is the object greater than the value?
+`expect_length(obj, value)` | Does the object have length value?
+
+See more with `help(package = "testthat")`
+
+These functions are silent if the expectation is met, and throw an error otherwise.
+
+Expectations are used to construct tests. 
+
+
+# Your Turn - Writing Expectations {background-color="#006666"}
+
+1. Create a test file with `usethis::use_test("hello")`
+
+2. Write a set of expectations that test the `hello` function
+
+
+# Test-Driven Development Workflow
+
+1. Write out the specifications for your function
+
+2. Create your test file `usethis::use_test("foo")`
+
+3. Write tests for your function in `tests/testthat/test_foo.R`
+
+4. Write your function and documentation in `R/foo.R`
+
+5. Test your package: `Ctrl/CMD - Shift - T` or use the Build Menu
+
+
+# Test-Driven Development Example
+
+Function: `mymean(x, na.rm)`
+
+Required Outcome: 
+
+  - calculate average for numeric vector x
+  - if `na.rm` is true, missing values in x should be removed before calculating the average
+
+# Test-Driven Development
+
+Function: `mymean(x, na.rm)`
+
+Specific Behavior:
+
+- issue a warning when x is not numeric and return `NA`
+- return `NA` when x has `NA`s and `na.rm = F`
+- return a value equal to `sum(x)/length(x)` when x has no `NA` values 
+- return a value equal to `sum(x2)/length(x2)` where    
+`x2 = x[!is.na(x)]` if `na.rm = T`
+
+
+# Test-Driven Development Example
+
+Important behaviors: 
+
+
+- issue a warning when x is not numeric and return NA
+
+```{r, eval = F}
+x <- letters[1:3]
+expect_warning(mymean(x)) # This is the minimal test
+expect_warning(mymean(x), # This tests for a specific warning
+               "argument is not numeric or logical: returning NA") 
+
+# This tests the value and that a warning is generated
+expect_warning(
+  expect_true(is.na(mymean(x))) # Function returns NA
+)
+
+```
+
+
+# Test-Driven Development Example
+
+- return `NA` when x has `NA`s and `na.rm = F`
+```{r, eval = F}
+# Can also test to see if a test fails...
+expect_failure(
+  expect_equal(mymean(c(1:8, NA), na.rm = F), mymean(c(1:8)))
+)
+
+# Or test if something returns NA
+expect_true(is.na(mymean(c(1:8, NA))))
+```
+
+
+# Test-Driven Development Example
+
+- return a single numeric value equal to `sum(x)/length(x)`
+
+```{r, eval = F}
+x <- 1:8
+y <- c(1:8, NA)
+
+# Test that mean(1:8) returns a numerically correct response
+expect_equal(mymean(x), 4.5)
+
+# Test that mean(c(1:8, NA)) equals mean(1:8) when na.rm = T
+expect_equal(mymean(y, na.rm = T), mymean(x))
+```
+
+
+# Unit tests are...
+
+- Modular (by design)
+
+- Quick to run
+
+- Run in an clean environment<br/>    
+    - Set up and Tear down tasks set up the environment for testing
+    
+- Independent - don't require outside files (traditionally)
+
+
+# Unit tests
+
+> But, we're statisticians. What about the data?
+
+- use tiny test data (`dput()` is helpful)
+
+- read in toy data from files in the test directory
+
+- use data included with the package
+
+- use data included in base R
+
+- download data from elsewhere with a set-up function, delete it with a tear-down function
+    - tests will fail without internet or if the site is down
+
+# Code Coverage: `covr` {.smaller}
+
+> How many unit tests are enough? Is everything tested?
+
+- `covr` is a package that will:
+    1. build your package in a clean environment 
+    2. run your tests
+    3. determine how many times each line was evaluated (through [magic](https://cran.r-project.org/web/packages/covr/vignettes/how_it_works.html))
+    4. launch a Shiny app to show you line-by-line coverage reports
+    
+- 100% coverage is good, but unit tests aren't everything
+    - Some lines aren't worth testing
+    - Integration testing matters too!
+
+```{r, eval = F}
+covr::report() # Run a local code coverage report
+
+```
+
+# Your Turn   {background-color="#006666"}
+
+1. Run a code coverage report locally for your `happyR` package using `covr::report()`
+
+2. Run `use_tidy_github_actions()`. 
+This will activate all three main workflows: checking the package, running a code coverage report and re-publishing the website
+
