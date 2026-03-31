@@ -317,6 +317,16 @@ covr::report() # Run a local code coverage report
 
 1. Run a code coverage report locally for your `happyR` package using `covr::report()`
 
-2. Run `use_tidy_github_actions()`. 
+2. Get a [codecov token](https://docs.codecov.com/docs/adding-the-codecov-token)
+
+3. Run `use_tidy_github_actions()`. 
 This will activate all three main workflows: checking the package, running a code coverage report and re-publishing the website
 
+
+
+
+# Static code review
+
+- R package `lintr` https://lintr.r-lib.org/articles/lintr.html
+
+provides stylistic code review:  `lintr::lint_dir("R")`

@@ -1,0 +1,229 @@
+---
+title: 'Functions in C++'
+date: '2026-03-30'
+engine: knitr
+type: slides
+execute:
+  error: true
+categories:
+- Week09
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+
+# Outline
+
+- Good or bad code?
+- timing code
+- profiling tools
+
+# Connecting R and C++
+
+- lots of support for C++ programming from R community
+
+- on your machine: C++ compiler (check with `which cpp` in the Terminal)
+
+# A first program
+
+```{r}
+library(Rcpp)
+
+cppFunction('int add(int x, int y, int z) {
+  int sum = x + y + z;
+  return sum;
+}')
+
+
+add(1,2,3)
+```
+# Vector input, scalar output
+
+```{r}
+sumR <- function(x) {
+  total <- 0
+  for (i in seq_along(x)) {
+    total <- total + x[i]
+  }
+  total
+}
+```
+
+# Vector input, scalar output in C++
+
+```{r}
+cppFunction('double sumC(NumericVector x) {
+  int n = x.size();
+  double total = 0;
+  for(int i = 0; i < n; ++i) {
+    total += x[i];
+  }
+  return total;
+}')
+```
+
+
+# Package `bench`
+
+```{r}
+x <- runif(1e3)
+bench::mark(
+  sum(x),
+  sumC(x),
+  sumR(x)
+)[1:6]
+```
+# Let's try this {background-color="#006666"}
+
+Buffon's needle is a Monte Carlo estimation of $pi$ by counting the number of times that a needle of length $\ell$ tossed on a piece of lined paper crosses a line, when the lines are $\ell$ apart. 
+The theoretical probability that any tossed needle crosses a line is $2/\pi$.
+
+Write a function `rbuffon(n)` that produces a binary vector with $n$ 1s and 0s (1s for crossing needles and 0s otherwise).
+
+How many digits of $\pi$ can be reliably estimated with 50,000 tosses?
+
+
+Double check the digits of $\pi$ against [Eve Andersson's one million digits of pi](https://github.com/eneko/Pi/blob/master/one-million.txt)
+
+
+# Let's try this {background-color="#006666"}
+
+Use [Advanced R, Chapter 25](https://adv-r.hadley.nz/rcpp.html) to implement a C version of `rbuffon`. 
+
+How do the functions compare in speed?
+
+What about number of crossings in n throws?
+
+# Buffon's Needle in R and C
+
+```{r}
+rbuffon <- function(n) {
+  # Simulate the center of the needle's distance from the nearest line
+  # Uniform on [0, 0.5] since distance between lines = 1
+  center_dist <- runif(n, min = 0, max = 0.5)
+  
+  # Simulate the acute angle the needle makes with the lines
+  # Uniform on [0, pi/2]
+  angle <- runif(n, min = 0, max = pi / 2)
+  
+  # A needle crosses a line if the horizontal projection of its half-length
+  # is >= the distance from its center to the nearest line.
+  # Half-length projection = 0.5 * sin(angle), needle length = 1
+  crosses <- as.integer(0.5 * sin(angle) >= center_dist)
+  
+  return(crosses)
+}
+
+2/mean(rbuffon(50000))
+2/mean(rbuffon(50000))
+2/mean(rbuffon(50000))
+```
+# C implementation
+
+```{r}
+library(Rcpp)
+
+# Compile and load the C++ function
+sourceCpp("../code/buffons-needle.cpp")
+
+2/mean(rbuffon_cpp(50000))
+2/mean(rbuffon_cpp(50000))
+2/mean(rbuffon_cpp(50000))
+
+```
+#
+
+```{r}
+bench::mark(
+  2/mean(rbuffon(100000))
+)[1:6]
+
+bench::mark(
+  2/mean(rbuffon_cpp(100000))
+)[1:6]
+
+```
+#
+
+```{r}
+bench::mark(
+  sum(rbuffon(1000000))
+)[1:6]
+
+bench::mark(
+  rbuffon_count_cpp(1000000)
+)[1:6]
+
+```
+
+# Example: Spigot algorithm for $\pi$
+
+```{r}
+# install.packages("Rcpp")
+library(Rcpp)
+
+cppFunction('
+#include <Rcpp.h>
+#include <boost/multiprecision/cpp_int.hpp>
+using namespace Rcpp;
+using boost::multiprecision::cpp_int;
+
+// [[Rcpp::export]]
+std::string pi_spigot_boost(int digits) {
+    cpp_int q = 1, r = 0, t = 1;
+    cpp_int k = 1, n = 3, l = 3;
+
+    int count = 0;
+    std::string out = "";
+    int newline = 0;
+
+    while (count < digits) {
+        if ((4*q + r - t) < n * t) {
+            // emit digit
+            out += n.convert_to<std::string>();
+            count++;
+            newline++;
+
+            if (count == 1) {
+              out += ".\\n";
+              newline = 0;
+            }
+            if (newline==50) {
+              out += "\\n";
+              newline = 0;
+            }
+
+            cpp_int q_old = q;
+            cpp_int r_old = r;
+
+            q = 10 * q_old;
+            r = 10 * (r_old - n * t);
+            n = (10 * (3*q_old + r_old) / t) - 10 * n;
+        } else {
+            cpp_int q_old = q;
+            cpp_int r_old = r;
+            cpp_int t_old = t;
+            cpp_int k_old = k;
+            cpp_int l_old = l;
+
+            q = q_old * k_old;
+            r = (2*q_old + r_old) * l_old;
+            t = t_old * l_old;
+            k = k_old + 1;
+            n = (q_old * (7*k_old) + 2 + r_old * l_old) / (t_old * l_old);
+            l = l_old + 2;
+        }
+    }
+
+    return out;
+}
+')
+
+# test
+cat(pi_spigot_boost(101))
+
+```
