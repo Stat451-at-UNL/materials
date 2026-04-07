@@ -16,12 +16,6 @@ format:
 ---
 
 
-# Outline
-
-- Good or bad code?
-- timing code
-- profiling tools
-
 # Connecting R and C++
 
 - lots of support for C++ programming from R community
@@ -123,6 +117,8 @@ rbuffon <- function(n) {
 2/mean(rbuffon(50000))
 ```
 # C implementation
+
+download [code file](../code/buffons-needle.cpp)
 
 ```{r}
 library(Rcpp)

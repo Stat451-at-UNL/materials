@@ -1,0 +1,260 @@
+---
+title: 'The S3 Object model'
+date: '2026-04-07'
+engine: knitr
+type: slides
+execute:
+  error: true
+  cache: false
+categories:
+- Week09
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r echo=FALSE, include=FALSE}
+library(tidyverse)
+```
+
+# Outline
+
+- Constructors and Validators
+
+- Inheritance
+
+- Methods 
+
+# S3 
+
+make an `S3` object: give an object a class:
+
+```{r}
+data <- matrix()
+class(data) <- "simMatrix"
+
+sloop::otype(data)
+```
+```{r}
+data <- structure(matrix(), class = "simMatrix")
+
+sloop::otype(data)
+```
+Obviously this system is very exploitable -- and accident-prone
+
+# Working with S3 relies on good practice
+
+Just claiming some object is of a particular class doesn't make it so, and it could lead to terrible problems.
+
+```{r  warning=TRUE}
+x <- as.Date("2026-04-07")
+str(x)
+
+y <- "2026-04-07"
+class(y) <- "Date"
+str(y)
+```
+
+# Constructors 
+
+
+Good practice, but not required: *constructor* `new_classname`
+
+```{r cache=FALSE}
+new_simMatrix <- function(size = NULL) {
+  if (is.null(size)) {
+      size <- 0
+  }
+  dimnames= list(vector("character", size), vector("character", size))
+  if (size > 0) dimnames <- list(as.character(1:size), as.character(1:size))
+  structure(matrix(numeric(length= size*size), nrow=size, ncol=size,
+                   dimnames = dimnames), 
+            class = "simMatrix")
+}
+
+new_simMatrix(size = 2)
+```
+
+
+
+# Validator
+
+*Validator*: check that object is 'right'
+
+```{r}
+validate_simMatrix <- function(x) {
+  # simMatrix is supposed to be a square matrix
+  dims <- dim(x) 
+  stopifnot(dims[1]==dims[2]) # matrix is supposed to be square
+  values <- unclass(x)
+  stopifnot(is.numeric(values)) 
+  x
+}
+```
+
+
+# Helper for users
+
+Focus here on the user, i.e. think about defaults and use cases
+
+
+**Constructor** of the form `class()` to create a new object of class `class`
+
+
+Providing support for **generics**, such as `print`
+
+# Constructor
+
+Idea: create a new `simMatrix` and validate it
+
+```{r}
+simMatrix <- function(size = NULL) {
+  x <- new_simMatrix(size)
+  validate_simMatrix(x)  
+}
+```
+
+`new_simMatrix` only constructs one object at a time - can't use that for casting a vector
+
+# Vectorized Constructor
+
+```{r}
+simMatrix_one <- function(size = NULL) { # rename previous constructor
+  x <- new_simMatrix(size)
+  validate_simMatrix(x)  
+}
+
+simMatrix <- function(x) { # x can now be a vector of objects 
+ lapply(x, FUN = simMatrix_one)
+}
+```
+
+# Example
+
+constructor looks like a cast
+
+```{r}
+mtcars <- mtcars |> mutate(
+  carb = simMatrix(carb)
+)
+
+head(mtcars)
+```
+
+# 
+
+look closer, we see that there is now a list vector with `simMatrix` objects
+
+```{r}
+str(head(mtcars))
+```
+
+
+
+# Which generic is used?
+
+```{r}
+x <- new_simMatrix(size = 3)
+
+sloop::s3_dispatch(print(x))
+```
+
+
+
+# Inheritance
+
+in 90% of situations classes aren't started from scratch but use inheritances:
+
+```{r}
+x <- new_simMatrix(1)
+class(x) <- c("simMatrix", "matrix") # order matters: more specific first
+```
+
+creates a new object of `new class` that inherits all of the properties from the parent class `simMatrix`
+
+that's how `ggplot2` extensions work (new `geom` and `stat`)
+
+```{r}
+sloop::s3_dispatch(print(x))
+```
+
+# Providing generic support
+
+
+```{r}
+print.simMatrix <- function(x) {
+  dims <- dim(x)
+  cat("simMatrix <", dims[1]," x ",dims[2], ">\n")
+  print(unclass(x))
+}
+
+sloop::s3_dispatch(print(x))
+```
+```{r}
+head(mtcars)
+```
+
+# 
+
+```{r}
+print(mtcars$carb[1])
+
+print(head(mtcars$carb))
+```
+
+# Your Turn  {background-color="#006666"}
+
+The treatment of colors in R is ... strange. 
+The `colors()` object is a vector of `r `length(colors())` named colors 
+
+```{r}
+head(colors())
+```
+These named colors, together with hex colors from RGB provide the colors used throughout
+R's plotting routines.
+
+Create an S3 class "color" that saves a color's RGB hexcode (`col2rgb`) together with its name, if given.
+
+# Your Turn {background-color="#006666"}
+
+Expand the color class by adding a second color for annotations - either in white or in black, depending on which color's contrast is bigger `colorspace::contrast_ratio`
+
+# A different constructor
+
+By default `simMatrix` is called with a size argument. 
+
+What, if the input has the form of a `data.frame` with columns for `row.names`, `column.names` and `value`?
+
+```{r}
+dframe <- data.frame(expand.grid(rows=paste0("L",1:6), cols=paste0("L",1:6)), 
+                     value = runif(36))
+
+simMatrix(dframe)
+```
+# Writing methods
+
+```{r}
+simMatrix <- function(x, ...) {
+  UseMethod("simMatrix")
+}
+simMatrix.numeric <- function(x, ...) {
+  # interpret integer as size object
+  new_simMatrix(size = x)
+}
+
+simMatrix.data.frame <- function(x, formula = value ~ rows+cols, ...) {
+  mat <- xtabs(formula, data = dframe)
+  class(mat) <- "simMatrix"
+  validate_simMatrix(mat)
+}
+```
+
+# Now use the different constructors
+
+```{r}
+simMatrix(2L)
+simMatrix(dframe)
+```

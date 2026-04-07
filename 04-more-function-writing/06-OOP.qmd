@@ -1,0 +1,70 @@
+---
+title: 'Object Oriented Programming (OOP) in R'
+date: '2026-04-02'
+engine: knitr
+type: slides
+execute:
+  error: true
+categories:
+- Week09
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r echo=FALSE, include=FALSE}
+library(tidyverse)
+```
+
+# Outline
+
+- What is Object Oriented Programming? 
+
+- OOP models in R
+
+- Constructors 
+
+# Object Oriented Programming
+
+Idea of object oriented programming is that the user can define abstract objects (**classes**, e.g. a linear model object) that contains named 'pieces' (**fields**, e.g. the data, the parameter estimates, residuals, ...) and associated 'methods' (functions, e.g. `predict`)
+
+**Polymorphism** allows us to 'over-write' existing methods and implement specialized functionality that way
+
+Methods have the form `class.methodname` - at the core of R and lazy evaluation: e.g. `summary`, `print`, ...
+
+# OOP models in R
+
+In chronological order:
+
+- base 
+
+- S3 
+
+- S4 
+
+- R6
+
+Check any object in R for its class/type with `typeof` or `sloop::otype`
+
+
+# OOP models used in R
+
+
+```{r}
+typeof(1:10)
+sloop::otype(1:10)
+```
+`ggplot2` is a based on `grid` and uses `S3`:
+
+```{r}
+gg <- diamonds |> ggplot(aes(x = carat, y = price)) + geom_point()
+sloop::otype(gg)
+```
+
+`shiny` uses `R6`
+
+`lme4`, `stats4` use `S4`
+
