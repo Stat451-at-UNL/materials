@@ -1,6 +1,6 @@
 ---
-title: 'The S3 Object model'
-date: '2026-04-07'
+title: 'The S4 Object model'
+date: '2026-04-09'
 engine: knitr
 type: slides
 execute:
@@ -49,8 +49,8 @@ Why S4?
 
 # Defining S4 Classes
 
-```r
-setClass(
+```{r}
+Person <- setClass(
   "Person",
   slots = list(
     name = "character",
@@ -63,33 +63,39 @@ Slots define structure and types
 
 # Common Constructor
 
-```r
-p <- new("Person", name = "Alice", age = 30)
+use `new` or the name of the class:
+
+```{r}
+alice <- new("Person", name = "Alice", age = 27)
+bob <- Person(name="Bob", age = 25)
 ```
 
 Accessing Slots with `@`
 
-```r
-p@name
-p@age
+```{r}
+alice@name
+bob@age
 ```
 
 # Validity and Type Checking
 
 - Automatic type enforcement
 
-```r
+```{r error=TRUE}
 setValidity("Person", function(object) {
   if (object@age < 0) "Age must be non-negative"
   else TRUE
 })
+
+cynthia <- Person(name = "Cynthia", age = -2)
+
 ```
 
 - Ensures consistent objects
 
-## Generics
+# Generic Functions
 
-```r
+```{r}
 setGeneric("greet", function(object)
   standardGeneric("greet")
 )
@@ -97,25 +103,20 @@ setGeneric("greet", function(object)
 
 * Defines interface
 
----
+# Methods
 
-## Methods
-
-```r
+```{r}
 setMethod("greet", "Person", function(object) {
-  paste("Hello", object@name)
+  paste("Hello, ", object@name)
 })
 ```
 
-```r
-greet(p)
+```{r}
+greet(alice)
 ```
+# Multiple Dispatch
 
----
-
-## Multiple Dispatch
-
-```r
+```{r}
 setGeneric("combine", function(x, y)
   standardGeneric("combine")
 )
@@ -125,15 +126,17 @@ setMethod("combine", c("Person", "Person"),
     paste(x@name, "and", y@name)
   }
 )
+
+combine(alice, bob)
 ```
 
 * Dispatch based on multiple arguments
 
----
 
-## Inheritance
 
-```r
+# Inheritance
+
+```{r}
 setClass("Employee",
   slots = list(id = "numeric"),
   contains = "Person"
@@ -142,11 +145,17 @@ setClass("Employee",
 
 * Inherits slots and methods
 
----
+# Accessing Parts
 
-## Accessor Functions (Best Practice)
+```{r}
+alice |> str()
 
-```r
+alice@age
+```
+
+better: set up accessor functions:
+
+```{r}
 setGeneric("name", function(object)
   standardGeneric("name")
 )
@@ -154,55 +163,41 @@ setGeneric("name", function(object)
 setMethod("name", "Person", function(object)
   object@name
 )
+
+name(bob)
+age(alice)
 ```
 
 * Avoid direct slot access
 
----
-
-## Interoperability
+# Interoperability
 
 * Use S3 with S4:
 
-```r
+```{r}
 setOldClass("data.frame")
 ```
 
 * Mixed systems are common
 
----
+# Summary
 
-## Advantages and Tradeoffs
-
-### Advantages
-
-* Formal structure
-* Strong validation
-* Multiple dispatch
-
-### Tradeoffs
-
-* Verbose
-* Steeper learning curve
-
----
-
-## Summary
-
-* S4 = formal OOP in R
+* S4 is a more formal OOP model than S3
 * Key features:
 
   * Typed slots
   * Explicit classes
   * Multiple dispatch
-* Best for complex systems
+* Better for complex problems
 
----
+At the expense of steeper learning curve, more verbose function
 
-## Exercises
+# Your Turn  {background-color="#006666"}
 
 1. Define class `Rectangle` with slots `width`, `height`
 2. Add validity check (positive values)
 3. Write method `area()`
 4. Extend to `Square`
 5. Implement `combine()` for rectangles
+
+

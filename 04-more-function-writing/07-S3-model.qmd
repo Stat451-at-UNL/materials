@@ -208,7 +208,7 @@ print(head(mtcars$carb))
 # Your Turn  {background-color="#006666"}
 
 The treatment of colors in R is ... strange. 
-The `colors()` object is a vector of `r `length(colors())` named colors 
+The `colors()` object is a vector of `r length(colors())` named colors 
 
 ```{r}
 head(colors())
