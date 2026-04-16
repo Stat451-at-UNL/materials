@@ -1,0 +1,274 @@
+---
+title: 'The R6 Object model'
+date: '2026-04-16'
+engine: knitr
+type: slides
+execute:
+  error: true
+  cache: false
+categories:
+- Week09
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r echo=FALSE, include=FALSE}
+library(tidyverse)
+```
+
+# An Example
+
+```{r}
+library(R6)
+RectangleR6 <- R6Class("RectangleR6", list(
+  width = 0,
+  height = 0,
+  area = function() {
+    return(self$width * self$height)
+  })
+)
+```
+
+`self` refers to the object itself
+
+
+# Constructor and Immutability
+
+For free, function `new` 
+
+```{r}
+x <- RectangleR6$new()
+x
+```
+
+`clone` function - used for copying, but by default objects are immutable.
+
+```{r}
+y <- x
+y$width <- 5
+x$width
+```
+# `initialize`
+
+replaces the default behavior of `new`, i.e. we can check for validity:
+
+
+```{r}
+RectangleR6 <- R6Class("RectangleR6", list(
+  width = 0,
+  height = 0,
+  initialize = function(width, height) {
+    stopifnot(width >= 0, height >= 0)
+    self$width = width
+    self$height = height
+  },
+  area = function() {
+    return(self$width * self$height)
+  })
+)
+```
+
+# Adding Methods
+
+```{r}
+RectangleR6$set("public", "expand_by", function(w=0, h=0) {
+    stopifnot(w >= 0, h >= 0)
+    self$width = self$width + w
+    self$height = self$height + h
+    invisible(self)
+})
+```
+
+```{r}
+x_new <- RectangleR6$new(3,4)
+x_new
+```
+
+# This needs care!
+
+- Only newly created objects have the functionality:
+
+```{r error=TRUE}
+x$expand_by(2,3)
+```
+- _Convention_: if the function is implemented for the side effect, return `self` invisibly. This allows chaining.
+
+# Chaining
+
+R6 classes allow chaining
+
+```{r}
+x_new$expand_by(1,2)$expand_by(3,2) 
+```
+
+same as 
+
+```{r}
+x_new$
+  expand_by(1,2)$
+  expand_by(3,2) |> print()
+```
+
+# R6 reference class
+
+```{r eval=FALSE}
+R6Class(
+  classname = NULL,
+  public = list(),
+  private = NULL,
+  active = NULL,
+  inherit = NULL,
+  lock_objects = TRUE,
+  class = TRUE,
+  portable = TRUE,
+  lock_class = FALSE,
+  cloneable = TRUE,
+  parent_env = parent.frame()
+)
+```
+# R6Class objects have ...
+
+```{r}
+str(RectangleR6)
+```
+# Your Turn  {background-color="#006666"}
+
+Let's think about this [quote](https://adv-r.hadley.nz/r6.html#r6-classes) for a moment:
+
+![](../../images/this-is-the-only-function.png)
+
+Which functions did we use so far? 
+
+---
+
+- `new` and `set` look like functions, but ...
+
+- are actually methods of an `R6Class` object
+
+---
+
+# Your Turn  {background-color="#006666"}
+
+
+- ... What does that mean for the built-in help in R?
+
+- your turn modification: find documentation for the `set` function
+
+
+
+# Your Turn  {background-color="#006666"}
+
+R6 class online: https://r6.r-lib.org/
+
+
+Locate the function `set` and read through the code
+
+
+
+
+# Your Turn  {background-color="#006666"}
+
+Speed check! microbench the R6 class Rectangle and compare to the S3 and S4 implementations
+
+# 
+
+```{r}
+source("../../code/2026-04-14-code.R")
+
+widths <- abs(rnorm(1000))
+heights <- abs(rnorm(1000))
+
+make_R6_area <- function(widths, heights) {
+  result <- numeric(length(widths))
+  for (i in 1:length(widths)) {
+    rectangle <- RectangleR6$new(widths[i],
+                                 heights[i])
+    result[i] <- rectangle$area()
+  }
+  result
+}
+
+
+bench <- microbenchmark::microbenchmark(
+  make_S3_area(widths, heights),
+  make_S4_area(widths, heights), 
+  make_R6_area(widths, heights))
+```
+
+# Comparison Results
+
+```{r}
+bench
+```
+
+# Active fields
+
+Help us prevent misuse like this:
+
+```{r}
+x$height <- 1
+x$width <- -100
+x
+```
+Idea: make height and width private and use active fields to access them
+
+# a new class ...
+
+```{r}
+RectangleR6 <- R6Class("RectangleR6", 
+  private = list(
+    .width = 0,
+    .height = 0
+  ),
+  public = list(initialize = function(width, height) {
+    stopifnot(width >= 0, height >= 0)
+    private$.width = width             #<<
+    private$.height = height           #<<
+  },
+  area = function() {
+    return(private$.width * private$.height)
+  }),
+  active = list(
+    width = function(value) {
+      if (missing(value)) {
+        private$.width
+      } else {
+        if (value < 0)
+          stop("`$width` can't be negative", call. = FALSE)
+        private$.width <- value
+      }
+    },
+    height = function(value) {
+      if (missing(value)) {
+        private$.height
+      } else {
+        if (value < 0)
+          stop("`$height` can't be negative", call. = FALSE)
+        private$.height <- value
+      }
+    }
+  )
+)
+
+```
+
+# Active fields ...
+
+- look like fields to the outside
+
+- are implemented using active bindings; their values are re-computed every time 
+they are accessed
+
+```{r error=TRUE}
+x <- RectangleR6$new(3,5)
+x$width
+
+x$width <- 4
+x$width <- -1
+```
+
+

@@ -246,7 +246,7 @@ simMatrix.numeric <- function(x, ...) {
 }
 
 simMatrix.data.frame <- function(x, formula = value ~ rows+cols, ...) {
-  mat <- xtabs(formula, data = dframe)
+  mat <- xtabs(formula, data = x)
   class(mat) <- "simMatrix"
   validate_simMatrix(mat)
 }

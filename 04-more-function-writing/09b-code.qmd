@@ -1,0 +1,15 @@
+---
+title: 'Code from class: speed test S3 vs S4'
+type: Code
+date: '2026-04-14'
+categories:
+- code
+- Week11
+---
+
+```{r eval=FALSE}
+#| file: ../../code/2026-04-14-code.R
+#| echo: true
+```
+
+

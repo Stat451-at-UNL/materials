@@ -1,0 +1,42 @@
+---
+title: 'Comparison of S3 and S4'
+date: '2026-04-14'
+engine: knitr
+type: slides
+execute:
+  error: true
+  cache: false
+categories:
+- Week09
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r echo=FALSE, include=FALSE}
+library(tidyverse)
+```
+
+
+# Your Turn  {background-color="#006666"}
+
+1. Define class `Rectangle` with slots `width`, `height`
+2. Add validity check (positive values)
+3. Write method `area()`
+4. Extend to `Square`
+5. Implement `combine()` for rectangles
+
+
+# Your Turn  {background-color="#006666"}
+
+1. Create the class `RectangleS3` using S3 with constructor `height` and `widths`. 
+2. Add validity check (positive values)
+3. Write method `area()`
+4. How does the method `combine` have to be adjusted?
+
+5. Create 5,000 rectangles from a normally distributed heights and widths, check that they are valid and calculate their area. 
+6. Compare the speed of the two implementations. 
+
