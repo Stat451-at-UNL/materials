@@ -1,0 +1,138 @@
+---
+title: "Parallel Computing in R"
+date: '2026-04-28'
+engine: knitr
+type: slides
+execute:
+  error: true
+  cache: false
+categories:
+- Week12
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r setup, echo=FALSE}
+library(tidyverse)
+```
+
+# R 4.6 has come out
+
+![](https://ikonick.com/cdn/shop/files/peanuts-themountain-horizontal-_canvas-frame-black_canvas-horizontal_800x800_c6edc71d-72d6-4eb0-850d-f6bc9743fbc0.jpg)
+
+# Your Turn {background-color="#006666"}
+
+- Check how many cores the machine you are using has `parallel::detectCores()`
+
+- Initialize a cluster with fewer than the number of cores available
+
+- Run the R code below on your machine 
+
+- Parallelize the statement, re-run it and time 
+
+```{r message = FALSE, warning = FALSE}
+library(nycflights13)
+library(dplyr)
+
+system.time(
+delays <- flights |> group_by(flight) |>
+  summarize(
+    mean_delay = mean(arr_delay, na.rm=FALSE)
+  ) 
+)
+```
+
+# `multidplyr`
+
+```{r}
+library(multidplyr)
+
+cl <- new_cluster(8)
+cluster_library(cl, "dplyr")
+```
+
+# Send data to nodes
+
+If the data is loaded in the main session, create partition; then work like normal
+
+```{r}
+library(nycflights13)
+
+flight_dest <- flights %>% group_by(dest) %>% partition(cl)
+flight_dest
+```
+
+
+
+# `collect()` results
+
+```{r}
+flight_dest %>% 
+  summarise(delay = mean(dep_delay, na.rm = TRUE), n = n()) %>% 
+  collect()
+```
+
+# Your Turn {background-color="#006666"}
+
+`set.seed` allows you to set the seed before using a random number generator
+to create reproducible samples. 
+
+```{r}
+set.seed(123)
+runif(3)
+set.seed(123)
+runif(3)
+```
+
+How would this work for a parallel process?
+What else do we need to ensure?
+
+# Random Number Generation
+
+```{r}
+library(parallel)
+set.seed(123)
+
+mclapply(c(5,5), runif, mc.cores=2)
+```
+How do we ensure reproducibility and independence?
+
+# RNG in Parallel
+
+`clusterSetRNGStream` uses RNG "L'Ecuyer-CMRG" that produces _streams_ of independent random numbers
+
+```{r}
+cl <- makeCluster(4)
+
+clusterSetRNGStream(cl, 123)
+
+results <- parLapply(cl, 1:4, function(i) {
+  data.frame(i, runif=runif(5))
+}) |> data.frame()
+
+clusterSetRNGStream(cl, 123)
+
+results2 <- parLapply(cl, 1:4,  function(i) {
+  data.frame(i, runif=runif(5))
+}) |> data.frame()
+
+identical(results, results2)
+stopCluster(cl)
+```
+
+# 
+
+```{r}
+results
+```
+
+# When NOT to Parallelize
+
+- Small tasks
+- Fast vectorized code
+- Memory limits
+

@@ -1,0 +1,185 @@
+---
+title: "Parallel Computing in R"
+date: '2026-04-21'
+engine: knitr
+type: slides
+execute:
+  error: true
+  cache: false
+categories:
+- Week12
+format:
+  revealjs:
+    navigation-mode: vertical
+    logo: ../../N.svg
+    includes:
+      in_header: ../../header.html
+---
+
+```{r setup, echo=FALSE}
+library(tidyverse)
+```
+
+# Idea of Parallelization
+
+- by default R is using only a single processor (core)
+
+- most modern machines have multiple processors
+
+- parallel code makes use of these multiple processors
+
+- challenge: identify those pieces of code that can be run in parallel
+
+
+# Types of Parallelism
+
+__Data Parallelism__
+
+- Same operation on different data chunks
+- Example: bootstrap
+
+__Task Parallelism__
+
+- Different tasks in parallel
+- Example: multiple models
+
+# Embarassingly parallel processes
+
+An *embarassingly parallel process* is defined as a process where 
+little or no effort is needed to separate the problem into a number of parallel tasks
+
+Loops and grouping structures are prime candidates:
+
+```{r eval = FALSE}
+dataframe %>% group_by(group) %>%
+  mutate(<<some calculation>>)
+```
+
+we can exploit group structure to identify code pieces that can be parallelized
+
+
+# Parallel Architecture
+
+__Shared Memory__
+
+- Multiple cores, same memory
+- Fast communication
+
+__Distributed Memory__
+
+- Multiple machines
+- Network communication
+
+# Parallel R
+
+- there are various packages for High Performance Computing in R, <br>
+e.g. CRAN view task at https://cran.r-project.org/web/views/HighPerformanceComputing.html
+
+- some of these packages are experimental and only available as github packages
+
+
+
+# Base R: `parallel`
+
+```{r}
+library(parallel)
+
+detectCores()
+
+```
+Main function: switch `lapply` to `mcapply` (for multi-core lapply)
+
+Doesn't work on Windows
+
+```{r}
+library(lme4)
+
+f <- function(i) { # i contains core from 1 to k
+  lmer(Petal.Width ~ . - Species + (1 | Species), data = iris)
+}
+```
+
+# Parallelization
+
+Parallel setup and pullback of results are costly overheads
+
+```{r}
+system.time(save1 <- lapply(1:120, f)) # single core
+system.time(save2 <- mclapply(1:120, f, mc.cores = 2)) # two cores
+system.time(save2 <- mclapply(1:120, f, mc.cores = 3)) # three cores
+system.time(save2 <- mclapply(1:120, f, mc.cores = 4)) # four cores
+system.time(save2 <- mclapply(1:120, f, mc.cores = 5)) # five cores
+```
+
+# Diminishing returns
+
+```{r}
+system.time(save2 <- mclapply(1:120, f, mc.cores = 6)) # six cores
+system.time(save2 <- mclapply(1:120, f, mc.cores = 7)) # seven cores
+system.time(save2 <- mclapply(1:120, f, mc.cores = 8)) # eight cores
+system.time(save2 <- mclapply(1:120, f, mc.cores = 9)) # nine cores
+system.time(save2 <- mclapply(1:120, f, mc.cores = 10)) # ten cores
+```
+
+
+# Cluster Parallelism 
+
+Start separate sockets - also works on Windows
+
+```{r}
+cl <- makeCluster(4)
+clusterExport(cl, "f")
+clusterEvalQ(cl, {
+  library(lme4)
+})
+```
+
+# 
+
+```{r}
+system.time({
+res <- parLapply(cl, 1:12000, f)
+})
+
+stopCluster(cl)
+```
+
+
+
+# `foreach` + `doParallel`
+
+```{r}
+library(foreach)
+library(doParallel)
+
+cl <- makeCluster(4)
+registerDoParallel(cl)
+
+
+res <- foreach(i = 1:120, .combine = c, .packages = "lme4") %dopar% {
+  f()
+}
+
+stopCluster(cl)
+```
+
+# `future` Framework
+
+```{r}
+library(future)
+library(future.apply)
+
+plan(multisession, workers = 4)
+
+system.time(
+res <- future_lapply(1:120, f)
+)
+```
+
+# Performance Considerations
+
+- Overhead matters
+- Task granularity
+- Memory duplication
+- Load balancing
+
